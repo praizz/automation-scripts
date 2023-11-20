@@ -1,5 +1,6 @@
 import subprocess
 import base64
+import uuid
 
 ### Generates the pod definition yamls with the respective image and node names
 def generate_k8s_yaml (images, nodes, image_pull_secret, k8s_filename):
@@ -20,21 +21,22 @@ spec:
 """
     for node in nodes:
         for image in images:
-            pod_name = "pod-"+ image + node
+            random_uuid = str(uuid.uuid4()).split('-')[0]
+            pod_name = "pod-"+ random_uuid
             with open(k8s_filename, 'a') as k8s_append:
                 k8s_append.write(pod_template.format(pod_name=pod_name, image=image, node_name=node, pull_secret=image_pull_secret))
     
 ### runs the kubectl commands for apply and delete with a 1 minute wait period inbetween
 def k8s_shell_commands (filename):
     print("Applying the Pod Definitions on the Cluster...")
-    apply = subprocess.run(["kubectl", "apply", "-f", filename, "--dry-run=client"], stdout=subprocess.PIPE)
+    apply = subprocess.run(["kubectl", "apply", "-f", filename], stdout=subprocess.PIPE) #, "--dry-run=client"
     print(apply.stdout.decode())
 
     print("Waiting one minute for Pods to be in a running state, check the state of the pods...")
     subprocess.run(["sleep", "60"], stdout=subprocess.PIPE)
 
     print("Deleting the Pod Definitions from the Cluster...")
-    delete = subprocess.run(["kubectl", "delete", "-f", filename, "--dry-run=client"], stdout=subprocess.PIPE)
+    delete = subprocess.run(["kubectl", "delete", "-f", filename], stdout=subprocess.PIPE) #, "--dry-run=client"
     print(delete.stdout.decode())
 
     print("Your Images should be on the nodes now")
